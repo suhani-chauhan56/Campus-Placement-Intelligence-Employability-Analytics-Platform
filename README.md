@@ -206,7 +206,7 @@ Top recruiting companies by number of hires and average package offered.
 
 ## 👩‍💻 Author
 
-**Your Name**
+**Suhani Chauhan**
 
 *Aspiring Data Analyst | Python • SQL • Power BI • Machine Learning*
 
