@@ -1,12 +1,18 @@
+<div align="center">
+
 # 🎓 Placement Prediction & College Analytics
 
 ### Turning student academic & skill data into placement predictions and salary insights
 
 **Python** → **MySQL** → **Power BI** → **Machine Learning**
 
-![Python](https://img.shields.io/badge/Python-Pandas%20%7C%20Sklearn-3776AB?style=for-the-badge&logo=python&logoColor=white) ![SQL](https://img.shields.io/badge/SQL-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white) ![Power BI](https://img.shields.io/badge/Power%20BI-Dashboard-F2C811?style=for-the-badge&logo=powerbi&logoColor=black) ![Status](https://img.shields.io/badge/Status-Complete-yellow?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-Pandas%20%7C%20Sklearn-3776AB?style=for-the-badge&logo=python&logoColor=white) ![SQL](https://img.shields.io/badge/SQL-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white) ![Power BI](https://img.shields.io/badge/Power%20BI-Dashboard-F2C811?style=for-the-badge&logo=powerbi&logoColor=black) ![Status](https://img.shields.io/badge/Status-Partially%20Complete-yellow?style=for-the-badge)
 
 ### 🚀 [**LIVE DEMO — Try the Prediction App**](https://placement-prediction-college-analytics-j7evnb2vmmmjxmnc6g4fdq.streamlit.app/)
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://placement-prediction-college-analytics-j7evnb2vmmmjxmnc6g4fdq.streamlit.app/)
+
+</div>
 
 ---
 
@@ -40,6 +46,9 @@ This project builds an end-to-end **Placement Analytics & Prediction system**: c
 🤖 MACHINE LEARNING — Prediction Layer
      │   (Placement classification + Salary regression)
      ▼
+🌐 STREAMLIT — Deployment
+     │   (live prediction app, models served in-browser)
+     ▼
 💡 INSIGHTS LAYER — Business Decisions
      (recruiter targeting · at-risk students · branch strategy)
 ```
@@ -54,6 +63,7 @@ This project builds an end-to-end **Placement Analytics & Prediction system**: c
 | 🗃️ Data Modeling & Analysis | **MySQL (SQL)** | Normalized schema, joins, window functions, CTEs, views, triggers |
 | 📊 Visualization | **Power BI** | KPI cards, multi-dashboard reporting, slicers |
 | 🤖 Machine Learning | **Scikit-learn** | Placement classification + salary regression |
+| 🌐 Deployment | **Streamlit** | Serves both trained models as a live, interactive prediction app |
 
 ---
 
@@ -116,15 +126,19 @@ Mass recruiters hire in volume around ~10 LPA; product-based companies hire far 
 
 ## 📊 Dashboard Features (Power BI) 🟡 In Progress
 
-🔲 KPI Cards — Total Students, Placement Rate, Average Salary, Highest Salary, Internship Participation, Average CGPA
-🔲 **Dashboard 1 — Placement Overview:** placement by branch, gender, company-wise recruitment
-🔲 **Dashboard 2 — Student Performance:** CGPA distribution, skill impact, communication scores
-🔲 **Dashboard 3 — Salary Insights:** salary by branch, company, CGPA, top recruiters
-🔲 **Dashboard 4 — Interactive Filters:** slicers for branch, gender, placement status, company, CGPA range
+A single, all-in-one dashboard covering the full placement story:
+
+- KPI cards — Total Students, Placement Rate, Average Salary, Highest Salary, Internship Participation, Average CGPA
+- Placement breakdown by branch, gender, and company-wise recruitment
+- Student performance view — CGPA distribution, skill impact, communication scores
+- Salary insights — salary by branch, company, and CGPA
+- Interactive slicers — branch, gender, placement status, company, CGPA range
 
 ---
 
-## 🤖 Machine Learning Models ✅ Completed
+## 🤖 Machine Learning Models ✅ Completed & Deployed
+
+Both trained models (`placement_model.pkl`, `salary_model.pkl`) are deployed as a live **Streamlit** web app (`app.py`), so predictions run in the browser with no local setup needed.
 
 > 🚀 **Live Demo:** [**Open the Streamlit App →**](https://placement-prediction-college-analytics-j7evnb2vmmmjxmnc6g4fdq.streamlit.app/) Enter student details to get a real-time **Placement Prediction** and **Expected Salary (LPA)** estimate.
 >
@@ -178,6 +192,7 @@ Mass recruiters hire in volume around ~10 LPA; product-based companies hire far 
  ┃ ┣ 📜 cleaning.sql
  ┃ ┣ 📜 queries.sql
  ┃ ┣ 📜 views.sql
+ ┃ ┗ 📜 procedureandTrigeerEG.sql
  ┣ 📂 notebooks/
  ┃ ┣ 📓 data_cleaning.ipynb
  ┃ ┣ 📓 eda.ipynb
