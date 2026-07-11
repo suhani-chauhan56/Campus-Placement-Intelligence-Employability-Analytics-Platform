@@ -130,7 +130,6 @@ Total Recruiters = CALCULATE(DISTINCTCOUNT('placement_data_cleaned'[company_name
 
 KPI strip (Total Students, Placement Rate, Average Salary, Highest Salary, Internship Participation Rate, Average CGPA) plus branch-wise and company-wise placement breakdowns, a Placed vs. Not Placed donut, and a gender-split stacked bar.
 
-![Placement Overview](./screenshots/placement-overview.png)
 
 **Visuals included:**
 | Visual | Axis | Values |
@@ -145,8 +144,6 @@ KPI strip (Total Students, Placement Rate, Average Salary, Highest Salary, Inter
 ### 2️⃣ Student Performance
 
 Examines how academic and skill metrics correlate with placement outcomes and salary.
-
-![Student Performance](./screenshots/student-performance.png)
 
 **Visuals included:**
 | Visual | Axis | Values |
@@ -163,7 +160,6 @@ Examines how academic and skill metrics correlate with placement outcomes and sa
 
 Deep dive into compensation trends by branch and recruiter, with a full heatmap matrix and top-package student table.
 
-![Salary Insights](./screenshots/salary-insights.png)
 
 **Visuals included:**
 | Visual | Axis | Values |
