@@ -1,0 +1,30 @@
+{
+  "best_classification_model": "Logistic Regression",
+  "classification_accuracy": 0.9475,
+  "regression_train_r2": 0.9375,
+  "regression_test_r2": 0.939,
+  "categorical_features": [
+    "gender",
+    "degree",
+    "branch"
+  ],
+  "numerical_features": [
+    "age",
+    "cgpa",
+    "backlogs",
+    "internships",
+    "certifications",
+    "coding_skills",
+    "communication_skills",
+    "project_count",
+    "has_internship",
+    "has_certification",
+    "total_skill_score",
+    "academic_performance_index",
+    "employability_score",
+    "placement_risk_score",
+    "eligible_for_shortlist"
+  ],
+  "rows_used_for_training": 12000,
+  "rows_used_for_salary_model": 10937
+}

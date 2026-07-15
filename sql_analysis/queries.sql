@@ -1,55 +1,87 @@
-INSERT INTO
-    Degrees(Degree_Name)
-SELECT DISTINCT
-    degree
+-- Executive KPIs
+SELECT
+    COUNT(*) AS total_students,
+    SUM(placement_status = 'Placed') AS placed_students,
+    ROUND(AVG(CASE WHEN placement_status = 'Placed' THEN package_lpa END), 2) AS avg_package_lpa,
+    ROUND(MAX(package_lpa), 2) AS highest_package_lpa,
+    ROUND(AVG(has_internship) * 100, 2) AS internship_conversion_rate,
+    SUM(eligible_for_shortlist) AS eligible_students,
+    SUM(risk_band = 'High') AS at_risk_students
 FROM placement_clean_raw;
 
-INSERT INTO
-    Branches (Branch_Name)
-SELECT DISTINCT
-    branch
-FROM placement_clean_raw;
-
-INSERT INTO
-    Companies (Company_Name)
-SELECT DISTINCT
-    company_name
+-- Top 10 companies hiring students
+SELECT
+    company_name,
+    COUNT(*) AS hires,
+    ROUND(AVG(package_lpa), 2) AS avg_package_lpa
 FROM placement_clean_raw
-WHERE
-    company_name <> 'Unplaced';
+WHERE placement_status = 'Placed'
+GROUP BY company_name
+ORDER BY hires DESC, avg_package_lpa DESC
+LIMIT 10;
 
-INSERT INTO
-    Students
-SELECT r.student_id, r.gender, r.age, d.Degree_ID, b.Branch_ID, r.cgpa, r.backlogs, r.internships, r.certifications, r.coding_skills, r.communication_skills, r.project_count, r.total_skill_score, r.academic_performance_index, r.employability_score
-FROM
-    placement_clean_raw r
-    JOIN Degrees d ON r.degree = d.Degree_Name
-    JOIN Branches b ON r.branch = b.Branch_Name;
+-- Branch with the highest package
+SELECT
+    branch,
+    ROUND(MAX(package_lpa), 2) AS highest_package_lpa
+FROM placement_clean_raw
+WHERE placement_status = 'Placed'
+GROUP BY branch
+ORDER BY highest_package_lpa DESC
+LIMIT 1;
 
--- Placed students: link to their real company
-INSERT INTO
-    Placements (
-        Student_ID,
-        Company_ID,
-        Package_LPA,
-        Placement_Status
-    )
-SELECT r.student_id, c.Company_ID, r.package_lpa, r.placement_status
-FROM
-    placement_clean_raw r
-    JOIN Companies c ON r.company_name = c.Company_Name
-WHERE
-    r.placement_status = 'Placed';
+-- Average CGPA by company
+SELECT
+    company_name,
+    ROUND(AVG(cgpa), 2) AS avg_cgpa,
+    COUNT(*) AS hires
+FROM placement_clean_raw
+WHERE placement_status = 'Placed'
+GROUP BY company_name
+ORDER BY avg_cgpa DESC;
 
--- Not placed students: no company, NULL package
-INSERT INTO
-    Placements (
-        Student_ID,
-        Company_ID,
-        Package_LPA,
-        Placement_Status
-    )
-SELECT r.student_id, NULL, NULL, r.placement_status
-FROM placement_clean_raw r
-WHERE
-    r.placement_status = 'Not Placed';
+-- Students with internship but no placement
+SELECT *
+FROM placement_clean_raw
+WHERE internship_status = 'Yes'
+  AND placement_status = 'Not Placed'
+ORDER BY placement_risk_score DESC;
+
+-- Placement rate by gender
+SELECT
+    gender,
+    COUNT(*) AS total_students,
+    SUM(placement_status = 'Placed') AS placed_students,
+    ROUND(SUM(placement_status = 'Placed') / COUNT(*) * 100, 2) AS placement_rate_pct
+FROM placement_clean_raw
+GROUP BY gender;
+
+-- Package distribution buckets
+SELECT
+    CASE
+        WHEN package_lpa = 0 THEN 'Not Placed'
+        WHEN package_lpa < 6 THEN '3-6 LPA'
+        WHEN package_lpa < 9 THEN '6-9 LPA'
+        WHEN package_lpa < 12 THEN '9-12 LPA'
+        ELSE '12+ LPA'
+    END AS package_band,
+    COUNT(*) AS students
+FROM placement_clean_raw
+GROUP BY package_band
+ORDER BY students DESC;
+
+-- Students requiring intervention
+SELECT
+    student_id,
+    branch,
+    cgpa,
+    backlogs,
+    internships,
+    coding_skills,
+    communication_skills,
+    placement_risk_score,
+    student_intervention
+FROM placement_clean_raw
+WHERE risk_band = 'High'
+ORDER BY placement_risk_score DESC
+LIMIT 100;

@@ -1,5 +1,7 @@
+import json
 import os
 import pickle
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -8,10 +10,15 @@ import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 
+try:
+    import shap
+except Exception:  # pragma: no cover - optional dependency
+    shap = None
+
 
 st.set_page_config(
     page_title="Placement Analytics & Prediction System",
-    page_icon="🎓",
+    page_icon="PA",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -402,6 +409,214 @@ def make_plotly_theme(fig, height=340):
     return fig
 
 
+def placement_risk_score(cgpa, backlogs, internships, certifications, coding_skills, communication_skills, project_count):
+    score = (
+        100
+        - (cgpa * 6.0)
+        - (coding_skills * 4.0)
+        - (communication_skills * 3.0)
+        - (internships * 8.0)
+        - (project_count * 4.0)
+        - (certifications * 2.0)
+        + (backlogs * 12.0)
+    )
+    return float(np.clip(score, 0, 100))
+
+
+def risk_band(score):
+    if score <= 35:
+        return "Low"
+    if score <= 65:
+        return "Medium"
+    return "High"
+
+
+def recommendation_actions(cgpa, backlogs, internships, certifications, coding_skills, communication_skills, project_count):
+    actions = []
+    if backlogs > 0:
+        actions.append("Clear backlogs to reduce screening risk")
+    if cgpa < 7.0:
+        actions.append("Raise CGPA above 7.0")
+    if internships == 0:
+        actions.append("Complete at least one internship")
+    if coding_skills < 6:
+        actions.append("Practice DSA and coding interviews")
+    if communication_skills < 6:
+        actions.append("Work on communication and mock interviews")
+    if project_count < 2:
+        actions.append("Add more portfolio projects")
+    if certifications == 0:
+        actions.append("Earn one industry certification")
+    return actions[:4] if actions else ["Profile is competitive; keep polishing interview readiness"]
+
+
+def profile_explanation(cgpa, backlogs, internships, certifications, coding_skills, communication_skills, project_count):
+    drivers = {
+        "CGPA": (cgpa - 7.0) * 12,
+        "Backlogs": -backlogs * 15,
+        "Internships": internships * 14,
+        "Certifications": certifications * 4,
+        "Coding": (coding_skills - 5) * 8,
+        "Communication": (communication_skills - 5) * 6,
+        "Projects": (project_count - 1) * 7,
+    }
+    return pd.Series(drivers).sort_values(ascending=False)
+
+
+@st.cache_data
+def load_executive_marts():
+    base = Path("data/marts")
+    payload = {}
+    kpi_path = base / "executive_kpis.json"
+    if kpi_path.exists():
+        payload["kpis"] = json.loads(kpi_path.read_text(encoding="utf-8"))
+    for name in [
+        "branch_kpi_summary",
+        "company_kpi_summary",
+        "yearly_placement_trend",
+        "gender_placement_summary",
+        "risk_band_summary",
+        "at_risk_students",
+    ]:
+        csv_path = base / f"{name}.csv"
+        if csv_path.exists():
+            payload[name] = pd.read_csv(csv_path)
+    return payload
+
+
+def ensure_runtime_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Backfill analytics columns if the cleaned CSV predates the current pipeline."""
+    runtime = df.copy()
+
+    if "has_internship" not in runtime.columns and "internship_status" in runtime.columns:
+        runtime["has_internship"] = runtime["internship_status"].map({"Yes": 1, "No": 0})
+    if "has_certification" not in runtime.columns and "certification_status" in runtime.columns:
+        runtime["has_certification"] = runtime["certification_status"].map({"Yes": 1, "No": 0})
+    if "total_skill_score" not in runtime.columns and {"coding_skills", "communication_skills"}.issubset(runtime.columns):
+        runtime["total_skill_score"] = runtime["coding_skills"] + runtime["communication_skills"]
+    if "academic_performance_index" not in runtime.columns and {"cgpa", "backlogs"}.issubset(runtime.columns):
+        runtime["academic_performance_index"] = (runtime["cgpa"] * 10) - (runtime["backlogs"] * 5)
+    if "employability_score" not in runtime.columns and {
+        "total_skill_score",
+        "cgpa",
+        "internships",
+    }.issubset(runtime.columns):
+        runtime["employability_score"] = (
+            runtime["total_skill_score"] * 0.4
+            + runtime["cgpa"] * 0.4
+            + runtime["internships"] * 2.0
+        )
+    if "placement_risk_score" not in runtime.columns and {
+        "cgpa",
+        "backlogs",
+        "internships",
+        "certifications",
+        "coding_skills",
+        "communication_skills",
+        "project_count",
+    }.issubset(runtime.columns):
+        runtime["placement_risk_score"] = (
+            100
+            - (runtime["cgpa"] * 6.0)
+            - (runtime["coding_skills"] * 4.0)
+            - (runtime["communication_skills"] * 3.0)
+            - (runtime["internships"] * 8.0)
+            - (runtime["project_count"] * 4.0)
+            - (runtime["certifications"] * 2.0)
+            + (runtime["backlogs"] * 12.0)
+        ).clip(0, 100)
+    if "eligible_for_shortlist" not in runtime.columns and {"cgpa", "backlogs"}.issubset(runtime.columns):
+        runtime["eligible_for_shortlist"] = ((runtime["cgpa"] >= 6.5) & (runtime["backlogs"] == 0)).astype(int)
+
+    return runtime
+
+
+def build_model_input(
+    gender,
+    degree,
+    branch,
+    age,
+    cgpa,
+    backlogs,
+    internships,
+    certifications,
+    coding_skills,
+    communication_skills,
+    project_count,
+):
+    has_internship = 1 if internships > 0 else 0
+    has_certification = 1 if certifications > 0 else 0
+    total_skill_score = coding_skills + communication_skills
+    academic_performance_index = (cgpa * 10) - (backlogs * 5)
+    employability_score = (total_skill_score * 0.4) + (cgpa * 0.4) + (internships * 2.0)
+    placement_risk = placement_risk_score(
+        cgpa, backlogs, internships, certifications, coding_skills, communication_skills, project_count
+    )
+    eligible_for_shortlist = 1 if (cgpa >= 6.5 and backlogs == 0) else 0
+
+    row = {
+        "gender": gender,
+        "degree": degree,
+        "branch": branch,
+        "age": age,
+        "cgpa": cgpa,
+        "backlogs": backlogs,
+        "internships": internships,
+        "certifications": certifications,
+        "coding_skills": coding_skills,
+        "communication_skills": communication_skills,
+        "project_count": project_count,
+        "has_internship": has_internship,
+        "has_certification": has_certification,
+        "total_skill_score": total_skill_score,
+        "academic_performance_index": academic_performance_index,
+        "employability_score": employability_score,
+        "placement_risk_score": placement_risk,
+        "eligible_for_shortlist": eligible_for_shortlist,
+    }
+    return pd.DataFrame([row])
+
+
+def shap_driver_series(model, input_data: pd.DataFrame, background_data: pd.DataFrame):
+    """Return feature contributions from SHAP when available, otherwise None."""
+    if shap is None or not hasattr(model, "named_steps"):
+        return None
+
+    preprocessor = model.named_steps.get("preprocessor")
+    estimator = model.named_steps.get("classifier") or model.named_steps.get("regressor")
+    if preprocessor is None or estimator is None:
+        return None
+
+    sample = background_data.sample(min(200, len(background_data)), random_state=42).copy()
+    background = preprocessor.transform(sample)
+    transformed_input = preprocessor.transform(input_data)
+
+    if hasattr(background, "toarray"):
+        background = background.toarray()
+    if hasattr(transformed_input, "toarray"):
+        transformed_input = transformed_input.toarray()
+
+    feature_names = list(preprocessor.get_feature_names_out())
+
+    try:
+        if estimator.__class__.__name__ == "LogisticRegression":
+            explainer = shap.LinearExplainer(estimator, background)
+            shap_values = explainer(transformed_input).values[0]
+        elif hasattr(estimator, "feature_importances_"):
+            explainer = shap.TreeExplainer(estimator)
+            shap_values = explainer(transformed_input).values[0]
+        else:
+            explainer = shap.Explainer(estimator, background)
+            shap_values = explainer(transformed_input).values[0]
+    except Exception:
+        return None
+
+    if len(shap_values) != len(feature_names):
+        return None
+
+    return pd.Series(shap_values, index=feature_names).sort_values(ascending=False)
+
+
 st.markdown(
     """
     <div class="hero-wrap">
@@ -459,7 +674,7 @@ def load_data():
 
 try:
     placement_clf, salary_reg = load_models()
-    df_clean = load_data()
+    df_clean = ensure_runtime_columns(load_data())
 except Exception as e:
     st.error(f"Error loading models or dataset: {e}")
     st.stop()
@@ -468,6 +683,14 @@ except Exception as e:
 gender_palette = {"Male": "#38bdf8", "Female": "#f472b6"}
 degree_order = sorted(df_clean["degree"].dropna().unique().tolist())
 branch_order = sorted(df_clean["branch"].dropna().unique().tolist())
+executive_marts = load_executive_marts()
+executive_kpis = executive_marts.get("kpis", {})
+branch_mart = executive_marts.get("branch_kpi_summary", pd.DataFrame())
+company_mart = executive_marts.get("company_kpi_summary", pd.DataFrame())
+yearly_mart = executive_marts.get("yearly_placement_trend", pd.DataFrame())
+gender_mart = executive_marts.get("gender_placement_summary", pd.DataFrame())
+risk_mart = executive_marts.get("risk_band_summary", pd.DataFrame())
+at_risk_mart = executive_marts.get("at_risk_students", pd.DataFrame())
 
 
 st.markdown(
@@ -529,6 +752,10 @@ with tab_predict:
         readiness = score_readiness(
             cgpa, backlogs, internships, certifications, coding_skills, communication_skills, project_count
         )
+        risk_score = placement_risk_score(
+            cgpa, backlogs, internships, certifications, coding_skills, communication_skills, project_count
+        )
+        risk_label = risk_band(risk_score)
 
         st.markdown(
             f"""
@@ -547,36 +774,38 @@ with tab_predict:
             unsafe_allow_html=True,
         )
 
+        st.markdown(
+            f"""
+            <div class="glass-card" style="margin: 0 0 0.8rem; padding: 0.9rem 1rem;">
+                <div style="display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap;">
+                    <div>
+                        <div class="section-title" style="margin-bottom:0.2rem;">Placement Risk</div>
+                        <div class="subtle-copy">Higher score means the profile needs more intervention.</div>
+                    </div>
+                    <div style="font-family:'Space Grotesk', sans-serif; font-size:1.8rem; font-weight:700; color:#b45309;">
+                        {risk_score:.0f}/100 <span style="font-size:1rem; color:#6b7280;">({risk_label})</span>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
         submitted = st.button("Run Prediction Model", type="primary", use_container_width=True)
 
         if submitted:
-            has_internship = 1 if internships > 0 else 0
-            has_certification = 1 if certifications > 0 else 0
-            total_skill_score = coding_skills + communication_skills
-            academic_performance_index = (cgpa * 10) - (backlogs * 5)
-            employability_score = (total_skill_score * 0.4) + (cgpa * 0.4) + (internships * 2.0)
-
-            input_data = pd.DataFrame(
-                [
-                    {
-                        "gender": gender,
-                        "degree": degree,
-                        "branch": branch,
-                        "age": age,
-                        "cgpa": cgpa,
-                        "backlogs": backlogs,
-                        "internships": internships,
-                        "certifications": certifications,
-                        "coding_skills": coding_skills,
-                        "communication_skills": communication_skills,
-                        "project_count": project_count,
-                        "has_internship": has_internship,
-                        "has_certification": has_certification,
-                        "total_skill_score": total_skill_score,
-                        "academic_performance_index": academic_performance_index,
-                        "employability_score": employability_score,
-                    }
-                ]
+            input_data = build_model_input(
+                gender,
+                degree,
+                branch,
+                age,
+                cgpa,
+                backlogs,
+                internships,
+                certifications,
+                coding_skills,
+                communication_skills,
+                project_count,
             )
 
             placement_prob = float(placement_clf.predict_proba(input_data)[0][1])
@@ -642,6 +871,39 @@ with tab_predict:
                 """,
                 unsafe_allow_html=True,
             )
+
+            actions = recommendation_actions(
+                cgpa, backlogs, internships, certifications, coding_skills, communication_skills, project_count
+            )
+            explanation = shap_driver_series(placement_clf, input_data, df_clean)
+            if explanation is None:
+                explanation = profile_explanation(
+                    cgpa, backlogs, internships, certifications, coding_skills, communication_skills, project_count
+                )
+
+            ex_col1, ex_col2 = st.columns([1, 1], gap="large")
+            with ex_col1:
+                st.markdown("#### Why this result?")
+                ex_fig = px.bar(
+                    explanation.reset_index(),
+                    x=0,
+                    y="index",
+                    orientation="h",
+                    color=0,
+                    color_continuous_scale="RdYlGn",
+                )
+                ex_fig.update_layout(
+                    xaxis_title="Contribution",
+                    yaxis_title="",
+                    coloraxis_showscale=False,
+                )
+                st.plotly_chart(make_plotly_theme(ex_fig, height=280), use_container_width=True)
+            with ex_col2:
+                st.markdown("#### How to improve")
+                for item in actions:
+                    st.write(f"- {item}")
+                st.markdown("#### Risk level")
+                st.write(f"{risk_label} risk with a score of {risk_score:.0f}/100.")
 
             tips = []
             if backlogs > 0:
@@ -787,6 +1049,16 @@ with tab_analytics:
     with col4:
         render_metric("Highest package", f"{highest_pkg:.2f} LPA", "Top offer in filtered data")
 
+    col5, col6, col7, col8 = st.columns(4)
+    with col5:
+        render_metric("Internship conversion", f"{filtered['has_internship'].mean() * 100:.1f}%", "Students with internships")
+    with col6:
+        render_metric("Eligible students", f"{int(filtered['eligible_for_shortlist'].sum()):,}", "CGPA >= 6.5 and no backlogs")
+    with col7:
+        render_metric("At-risk students", f"{int((filtered['risk_band'] == 'High').sum()):,}", "High intervention priority")
+    with col8:
+        render_metric("Avg. risk score", f"{filtered['placement_risk_score'].mean():.1f}", "Lower is better")
+
     st.markdown("### Placement Snapshot")
     p1, p2 = st.columns([1, 1], gap="large")
 
@@ -929,3 +1201,95 @@ with tab_analytics:
             color_continuous_scale="Turbo",
         )
         st.plotly_chart(make_plotly_theme(branch_fig, height=280), use_container_width=True)
+
+    st.markdown("### Executive Dashboard")
+    exec_c1, exec_c2 = st.columns(2, gap="large")
+
+    with exec_c1:
+        st.markdown("#### Branch Risk Heatmap")
+        heatmap_df = (
+            filtered.pivot_table(
+                index="branch",
+                columns="risk_band",
+                values="student_id",
+                aggfunc="count",
+                fill_value=0,
+            )
+            .reindex(columns=["Low", "Medium", "High"], fill_value=0)
+        )
+        if not heatmap_df.empty:
+            fig, ax = plt.subplots(figsize=(6.4, 3.8), dpi=120)
+            fig.patch.set_facecolor("#f8f4ee")
+            ax.set_facecolor("#ffffff")
+            sns.heatmap(heatmap_df, cmap="YlGnBu", annot=True, fmt="d", ax=ax)
+            style_chart_ax(ax, "Student Risk by Branch", "", "Branch")
+            plt.tight_layout()
+            st.pyplot(fig)
+
+    with exec_c2:
+        st.markdown("#### Placement Funnel")
+        funnel_df = pd.DataFrame(
+            {
+                "Stage": ["All Students", "Eligible", "Internship Holders", "Placed"],
+                "Count": [
+                    len(filtered),
+                    int(filtered["eligible_for_shortlist"].sum()),
+                    int(filtered["has_internship"].sum()),
+                    int((filtered["placement_status"] == "Placed").sum()),
+                ],
+            }
+        )
+        funnel_fig = px.funnel(funnel_df, x="Count", y="Stage", color="Stage")
+        st.plotly_chart(make_plotly_theme(funnel_fig, height=300), use_container_width=True)
+
+    exec_c3, exec_c4 = st.columns(2, gap="large")
+
+    with exec_c3:
+        st.markdown("#### Branch x Company Treemap")
+        branch_company = (
+            placed_only.groupby(["branch", "company_name"], as_index=False)
+            .size()
+            .rename(columns={"size": "hires"})
+        )
+        if not branch_company.empty:
+            treemap_fig = px.treemap(branch_company, path=["branch", "company_name"], values="hires", color="hires")
+            st.plotly_chart(make_plotly_theme(treemap_fig, height=320), use_container_width=True)
+
+    with exec_c4:
+        st.markdown("#### Placement Trend by Year")
+        trend_df = (
+            filtered.groupby("placement_year", as_index=False)
+            .agg(
+                placed=("placement_status", lambda s: (s == "Placed").sum()),
+                total=("student_id", "count"),
+                avg_package=("package_lpa", lambda s: s[s > 0].mean() if (s > 0).any() else 0),
+            )
+            .sort_values("placement_year")
+        )
+        if not trend_df.empty:
+            trend_fig = px.line(
+                trend_df,
+                x="placement_year",
+                y="placed",
+                markers=True,
+                title="Placed Students by Year",
+            )
+            trend_fig.add_bar(x=trend_df["placement_year"], y=trend_df["total"], name="Total Students", opacity=0.35)
+            st.plotly_chart(make_plotly_theme(trend_fig, height=320), use_container_width=True)
+
+    st.markdown("#### Company Snapshot")
+    company_snapshot = (
+        placed_only.groupby("company_name", as_index=False)
+        .agg(hires=("student_id", "count"), avg_package=("package_lpa", "mean"), avg_cgpa=("cgpa", "mean"))
+        .sort_values("hires", ascending=False)
+    )
+    if not company_snapshot.empty:
+        company_fig = px.bar(
+            company_snapshot.head(10),
+            x="company_name",
+            y="hires",
+            color="avg_package",
+            text="hires",
+            color_continuous_scale="Viridis",
+        )
+        st.plotly_chart(make_plotly_theme(company_fig, height=300), use_container_width=True)

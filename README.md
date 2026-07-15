@@ -1,231 +1,184 @@
-<div align="center">
+# Placement Analytics and Prediction System
 
-# 🎓 Placement Prediction & College Analytics
+An end-to-end placement intelligence project that goes beyond classification and turns student data into an analytics product for placement officers, departments, and recruiters.
 
-### Turning student academic & skill data into placement predictions and salary insights
+## What this project does
 
-**Python** → **MySQL** → **Power BI** → **Machine Learning**
+- Builds an ETL pipeline from raw student data to cleaned analytics marts
+- Loads SQL-ready staging tables and executive summary views
+- Delivers an interactive Streamlit dashboard for placement analytics
+- Trains machine learning models for placement prediction and salary estimation
+- Adds placement risk scoring, explainable drivers, and improvement recommendations
+- Produces branch, company, gender, and year-wise reporting views
 
-![Python](https://img.shields.io/badge/Python-Pandas%20%7C%20Sklearn-3776AB?style=for-the-badge&logo=python&logoColor=white) ![SQL](https://img.shields.io/badge/SQL-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white) ![Power BI](https://img.shields.io/badge/Power%20BI-Dashboard-F2C811?style=for-the-badge&logo=powerbi&logoColor=black) ![Status](https://img.shields.io/badge/Status-Complete-yellow?style=for-the-badge)
+## Business Problem
 
-### 🚀 [**LIVE DEMO — Try the Prediction App** (click on the button)](https://placement-prediction-college-analytics-j7evnb2vmmmjxmnc6g4fdq.streamlit.app/)
+Colleges usually store placement records as flat CSV files, but the real value comes from answering questions like:
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://placement-prediction-college-analytics-j7evnb2vmmmjxmnc6g4fdq.streamlit.app/)
+- Which branches are at risk?
+- Which companies hire most often?
+- What factors influence placement outcomes?
+- Which students need intervention early?
+- How have placement trends changed over time?
 
-</div>
+This project turns raw student records into a decision-support system for those questions.
 
----
+## Architecture
 
-Every placement season, colleges sit on a goldmine of data — CGPA, internships, certifications, coding and communication scores — but rarely turn it into a system that actually predicts outcomes.
-
-This project builds an end-to-end **Placement Analytics & Prediction system**: clean the raw student dataset, model it in SQL, explore what actually drives placements, visualize it in Power BI, and predict **placement likelihood** and **expected salary** with machine learning.
-
----
-
-## 🧾 Executive Summary
-
-> Analyzed **12,000 student records** — academics, skills, and placement outcomes across 6 branches and 13 recruiting companies — to find what drives campus placements, and built classification & regression models to predict **Placement Status** and **Expected Package (LPA)**.
-
----
-
-## 🏗️ Architecture
-
-```
-📄 Raw Student Dataset (12,000 records)
-     │
-     ▼
-🧹 PYTHON (Pandas) — Data Cleaning
-     │   (dedupe, missing values, feature engineering)
-     ▼
-🗃️ SQL (MySQL) — Modeling & Analysis
-     │   (normalized schema, branch/company/salary queries, views, triggers)
-     ▼
-📊 POWER BI — Visualization
-     │   (KPI cards, dashboards, interactive slicers)
-     ▼
-🤖 MACHINE LEARNING — Prediction Layer
-     │   (Placement classification + Salary regression)
-     ▼
-🌐 STREAMLIT — Deployment
-     │   (live prediction app, models served in-browser)
-     ▼
-💡 INSIGHTS LAYER — Business Decisions
-     (recruiter targeting · at-risk students · branch strategy)
+```text
+Raw Student CSV
+    |
+    v
+Python ETL
+    |
+    v
+Cleaned Dataset + Analytics Marts
+    |
+    v
+SQL Staging + Views
+    |
+    v
+Power BI / Executive Reporting
+    |
+    v
+ML Prediction
+    |
+    v
+Risk Score + Recommendations
+    |
+    v
+Streamlit Dashboard
 ```
 
----
+## Key Features
 
-## 🧰 Tech Stack
+### ETL and Data Engineering
 
-| Layer | Tool | Purpose |
-|---|---|---|
-| 🧹 Data Cleaning | **Python (Pandas)** | Deduplication, missing values, feature engineering |
-| 🗃️ Data Modeling & Analysis | **MySQL (SQL)** | Normalized schema, joins, window functions, CTEs, views, triggers |
-| 📊 Visualization | **Power BI** | KPI cards, multi-dashboard reporting, slicers |
-| 🤖 Machine Learning | **Scikit-learn** | Placement classification + salary regression |
-| 🌐 Deployment | **Streamlit** | Serves both trained models as a live, interactive prediction app |
+- Raw dataset ingestion
+- Synthetic enrichment for communication skill, project count, company assignment, and cohort year
+- Feature engineering for employability score, risk score, and intervention priority
+- Cleaned CSV export for analytics and model training
+- SQL-ready flat table for MySQL import
 
----
+### Executive Analytics
 
-## 📁 Dataset
+- Overall placement rate
+- Average package and highest package
+- Internship conversion rate
+- Eligible students and at-risk students
+- Branch-wise placement performance
+- Company hiring summary
+- Gender distribution
+- Year-wise placement trend
 
-- **Size:** 12,000 student records, 22 columns
-- **Fields:** `student_id`, `gender`, `age`, `degree`, `branch`, `cgpa`, `backlogs`, `internships`, `certifications`, `coding_skills`, `communication_skills`, `project_count`, `placement_status`, `package_lpa`, `company_name`, plus engineered features (`total_skill_score`, `academic_performance_index`, `employability_score`)
-- **Outcome split:** 10,937 placed / 1,063 not placed — **91.14%** overall placement rate
+### ML Prediction
 
----
+- Placement classification
+- Salary prediction for placed students
+- Model metadata export
 
-## 🔍 What This Project Analyzes
+### Decision Support
 
-**Branch-wise Placement** — comparing placement rates and average packages across AI, CS, DS, Electrical, IT, and Mechanical.
+- Placement risk score
+- Risk band: Low / Medium / High
+- Explainability-style factor breakdown
+- Personalized improvement recommendations
 
-**CGPA & Backlogs vs. Placement** — whether high CGPA alone guarantees placement, or if backlog count is a harder filter.
+## Tech Stack
 
-**Skill Impact** — internship count, certifications, and coding/communication scores against placement rate and package.
+- Python
+- Pandas
+- NumPy
+- Scikit-learn
+- Streamlit
+- Plotly
+- Matplotlib
+- Seaborn
+- SQL / MySQL
+- Power BI
 
-**Company Analysis** — top recruiting companies by hire volume and average package, and which companies favor which branches.
+## Folder Structure
 
-**Salary Distribution** — average, top-decile, and highest packages across the dataset.
-
----
-
-## 📊 SQL Analysis — Key Results
-
-**Branch Placement Rate**
-| Branch | Total | Placed | Rate |
-|---|---|---|---|
-| Data Science | 1,991 | 1,829 | **91.86%** |
-| Information Technology | 1,955 | 1,793 | 91.71% |
-| Artificial Intelligence | 2,016 | 1,838 | 91.17% |
-| Mechanical Engineering | 2,107 | 1,919 | 91.08% |
-| Computer Science | 1,950 | 1,772 | 90.87% |
-| Electrical Engineering | 1,981 | 1,786 | 90.16% |
-
-**Top Recruiters**
-| Company | Hires | Avg Package (LPA) |
-|---|---|---|
-| Infosys | 1,629 | 9.93 |
-| Accenture | 1,601 | 9.97 |
-| Cognizant | 1,599 | 9.94 |
-| Capgemini | 1,558 | 9.92 |
-| Adobe | 740 | 13.58 |
-| Meta | 751 | 13.56 |
-| Amazon | 679 | 13.48 |
-
-Mass recruiters hire in volume around ~10 LPA; product-based companies hire far fewer but pay 35–40% more.
-
-**Skill & Score Impact**
-- Communication score climbs from ~75% placement rate at score 2 to ~97% at score 10 — a near-linear relationship.
-- Avg employability score: **11.12 for placed vs. 8.14 for unplaced** — the clearest separator in the data.
-- Top packages (17.2–17.7 LPA) go to CGPA 9.3+ students placed at Adobe, Meta, Microsoft, and Amazon.
-- Only **76 students** have CGPA > 8 and are still unplaced — a short, specific follow-up list for the placement cell.
-
-*(Full query set, views, stored procedure, and triggers live in `sql_analysis/`.)*
-
----
-
-## 📊 Dashboard Features (Power BI) 
-
-A single, all-in-one dashboard covering the full placement story:
-
-- KPI cards — Total Students, Placement Rate, Average Salary, Highest Salary, Internship Participation, Average CGPA
-- Placement breakdown by branch, gender, and company-wise recruitment
-- Student performance view — CGPA distribution, skill impact, communication scores
-- Salary insights — salary by branch, company, and CGPA
-- Interactive slicers — branch, gender, placement status, company, CGPA range
-
----
-
-## 🤖 Machine Learning Models ✅ Completed & Deployed
-
-Both trained models (`placement_model.pkl`, `salary_model.pkl`) are deployed as a live **Streamlit** web app (`app.py`), so predictions run in the browser with no local setup needed.
-
-> 🚀 **Live Demo:** [**Open the Streamlit App →**](https://placement-prediction-college-analytics-j7evnb2vmmmjxmnc6g4fdq.streamlit.app/) Enter student details to get a real-time **Placement Prediction** and **Expected Salary (LPA)** estimate.
->
-> ⚠️ *This is a prediction based on historical trends, not a guarantee — real outcomes depend on each company's own hiring criteria.*
-
-**Model 1 — Placement Prediction (Classification)**
-- Target: `placement_status`
-- Algorithms: Logistic Regression, Decision Tree, Random Forest, Gradient Boosting
-
-**Model 2 — Salary Prediction (Regression)**
-- Target: `package_lpa`
-- Algorithms: Linear Regression, Random Forest Regressor, Gradient Boosting Regressor
-
----
-
-## 💡 Key Insights
-
-- 🎓 Students with internships show meaningfully higher placement rates and packages than those without.
-- 🗣️ Communication scores above ~7 correlate strongly with better placement outcomes (up to 97% placement rate at score 10).
-- 💰 Product-based companies (Adobe, Meta, Amazon) pay 35–40% more than mass recruiters, but hire in far smaller numbers.
-- 📜 Certifications add measurable salary lift even for students with zero internships.
-- 🧠 Employability score is the single strongest separator between placed and unplaced students (11.12 vs. 8.14 avg).
-
----
-
-## ✅ Project Progress Checklist
-
-| Stage | Status |
-|---|---|
-| Step 1: Data Cleaning (Python) | ✅ Done |
-| Step 2: Exploratory Data Analysis (EDA) | ✅ Done |
-| Step 3: SQL Analysis & Schema | ✅ Done |
-| Step 4: Power BI Dashboard | ✅ Done |
-| Step 5: ML — Placement Prediction | ✅ Done |
-| Step 5: ML — Salary Prediction | ✅ Done |
-| Business Insights Report | ✅ Done |
-
----
-
-## 🗂️ Project Structure
-
-```
-📦 Placement-Prediction-College-Analytics
- ┣ 📂 data/
- ┃ ┣ 📂 raw/
- ┃ ┗ 📂 cleaned/
- ┃    ┗ 📜 placement_data_cleaned.csv
- ┣ 📂 sql_analysis/
- ┃ ┣ 📜 schema.sql
- ┃ ┣ 📜 import.sql
- ┃ ┣ 📜 cleaning.sql
- ┃ ┣ 📜 queries.sql
- ┃ ┣ 📜 views.sql
- ┣ 📂 notebooks/
- ┃ ┣ 📓 data_cleaning.ipynb
- ┃ ┣ 📓 eda.ipynb
- ┃ ┗ 📓 model_training.ipynb
- ┣ 📂 powerbi/
- ┃ ┗ 📊 Dashboard_Documentation
- ┃ ┗ ScreenRecording_Dashboard
- ┣ 📂 models/
- ┃ ┣ 🤖 placement_model.pkl
- ┃ ┗ 🤖 salary_model.pkl
- ┣ 📄 app.py
- ┣ 📄 README.md
- ┗ 📄 requirements.txt
+```text
+Placement-Analytics/
+|-- data/
+|   |-- raw/
+|   |-- cleaned/
+|   |-- marts/
+|-- sql_analysis/
+|-- notebooks/
+|-- models/
+|-- dashboard/
+|-- images/
+|-- reports/
+|-- app.py
+|-- prepare_project.py
+|-- README.md
+|-- requirements.txt
 ```
 
----
+## Main Outputs
 
-## 🚀 Future Improvements
+- `data/cleaned/placement_data_cleaned.csv`
+- `data/marts/branch_kpi_summary.csv`
+- `data/marts/company_kpi_summary.csv`
+- `data/marts/yearly_placement_trend.csv`
+- `data/marts/gender_placement_summary.csv`
+- `data/marts/risk_band_summary.csv`
+- `data/marts/at_risk_students.csv`
+- `data/marts/executive_kpis.json`
+- `models/placement_model.pkl`
+- `models/salary_model.pkl`
+- `models/model_metadata.json`
 
-- 📊 Finish the Power BI dashboard and connect it to `Branch_Performance` / `Company_Recruitment_Summary` views
-- 🎯 Skill-gap recommendation engine for students
-- 🔌 Live integration with college ERP/placement cell data
-- 🧠 Deep learning-based placement prediction
+## SQL Analysis
 
----
+The `sql_analysis/` folder contains:
 
-## 👩‍💻 Author
+- Schema definition
+- Data import script
+- Cleaning checks
+- Reusable views
+- Executive queries for:
+  - Top recruiters
+  - Branch package comparison
+  - Gender placement rate
+  - Internship vs non-internship outcomes
+  - Students requiring intervention
 
-**Suhani Chauhan**
+## Streamlit App
 
-*Aspiring Data Analyst | Python • SQL • Power BI • Machine Learning*
+Run the dashboard locally with:
 
----
+```bash
+streamlit run app.py
+```
 
-⭐ **This project is still being built — star/watch the repo to follow progress!**
+The app includes:
 
-> ⚠️ **Disclaimer:** Predictions from this project are for educational and analytical purposes only. They do not guarantee actual placement outcomes.
+- Student prediction form
+- Salary forecast
+- Placement risk score
+- Improvement suggestions
+- Executive analytics dashboard
+- Branch, company, and trend views
+
+## How to Use
+
+1. Place the raw CSV in the project root.
+2. Run `python prepare_project.py` to build the cleaned dataset, marts, and models.
+3. Start the dashboard with `streamlit run app.py`.
+4. Use the SQL scripts and Power BI folder for reporting layers.
+
+## Future Scope
+
+- Native SHAP-based explainability
+- Department-level dashboards by branch and batch
+- Forecasting for future placement trends
+- Live database integration instead of CSV-based ETL
+- Power BI deployment and scheduled refreshes
+
+## Note
+
+Some columns in the enriched dataset are engineered for analytics and demo purposes, because the source CSV does not include every operational field needed for a full placement office workflow.
+

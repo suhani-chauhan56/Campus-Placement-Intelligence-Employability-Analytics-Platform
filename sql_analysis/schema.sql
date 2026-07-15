@@ -26,7 +26,13 @@ CREATE TABLE placement_clean_raw (
     has_certification TINYINT,
     total_skill_score INT,
     academic_performance_index DECIMAL(5, 2),
-    employability_score DECIMAL(6, 2)
+    employability_score DECIMAL(6, 2),
+    placement_risk_score DECIMAL(5, 1),
+    risk_band VARCHAR(10),
+    student_intervention VARCHAR(255),
+    intervention_priority VARCHAR(20),
+    eligible_for_shortlist TINYINT,
+    placement_year INT
 );
 
 DROP TABLE IF EXISTS Degrees;
